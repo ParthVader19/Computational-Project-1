@@ -19,8 +19,8 @@ def survival_prob(E,theta,D_m,L):#survival probability
 E=np.linspace(0,10,num=200,endpoint=True)+0.025#in the region of interest.
 E_data=np.linspace(0,10,num=200,endpoint=True)+0.025
 #%%
-D_m_test=np.linspace(2.4e-3 -0.5*2.4e-3,2.4e-3 +0.5*2.4e-3,num=5,endpoint=False)
-theta_test=np.linspace(np.pi/4-np.pi/4,np.pi/4,num=500,endpoint=False)
+D_m_test=np.linspace(2.4e-3 -0.5*2.4e-3,2.4e-3 +0.5*2.4e-3,num=100,endpoint=False)
+theta_test=np.linspace(np.pi/4-np.pi/4,np.pi/4,num=100,endpoint=False)
 
 #lineType=['-','--','-.',':']
 names_theta=[]
@@ -117,23 +117,27 @@ plt.grid()
 plt.show()
 
 #%% minimasation
-
-
 def parabolic_min(x,y,plot=False):
-    i1=300+np.random.randint(-10,10)
-    i2=400+np.random.randint(-10,10)
-    i3=490+np.random.randint(-10,10)
+    i1=300+np.random.randint(0,100)
+    i2=400+np.random.randint(-50,50)
+    i3=500+np.random.randint(-100,0)
     x_test=[x[i1],x[i2],x[i3]]
     y_test=[y[i1],y[i2],y[i3]]
 
     current_min=1000
-
+    colour=["red","black","blue"]
+    c_index=0
     while min(y_test)!=current_min:
+        current_min=min(y_test)
         x_test1=x_test
         if plot!=False:
-            plt.plot(x_test[y_test.index(min(y_test))],min(y_test),'ob')
+            plt.plot(x_test1,y_test,'o', color=colour[c_index])
+            z = np.polyfit(x_test, y_test, 2)
+            poly_y=np.poly1d(z)
+            plt.plot(theta_test,poly_y(theta_test),color=colour[c_index])
             plt.show()
-        current_min=min(y_test)
+        c_index+=1        
+        
         x3=0.5*((x_test[2]**2 -x_test[1]**2)*y_test[0] +(x_test[0]**2 -x_test[2]**2)*y_test[1] +(x_test[1]**2 -x_test[0]**2)*y_test[2])/((x_test[2]-x_test[1])*y_test[0] + (x_test[0]-x_test[2])*y_test[1]+ (x_test[1]-x_test[0])*y_test[2])
         
         y3=(x3-x_test[1])*(x3-x_test[2])*y_test[0]/((x_test[0]-x_test[1])*(x_test[0]-x_test[2]))+ (x3-x_test[0])*(x3-x_test[2])*y_test[1]/((x_test[1]-x_test[0])*(x_test[1]-x_test[2]))+ (x3-x_test[0])*(x3-x_test[1])*y_test[2]/((x_test[2]-x_test[0])*(x_test[2]-x_test[1]))
@@ -142,19 +146,59 @@ def parabolic_min(x,y,plot=False):
 
         x_test.remove(x_test[y_test.index(max(y_test))])
         y_test.remove(max(y_test))
-        
+    
+    d=(x_test[1]-x_test[0])*(x_test[2]-x_test[0])*(x_test[2]-x_test[1])
+    C=(x_test[2]-x_test[1])*y_test[0]/d + (x_test[0]-x_test[2])*y_test[1]/d +(x_test[1]-x_test[0])*y_test[2]/d
   
-    return x_test[y_test.index(min(y_test))],x_test1
+    return x_test[y_test.index(min(y_test))],x_test1,C
 
 #%%
-theta_min,theta_test3=parabolic_min(theta_test,NLL_y)
+theta_min,theta_test3,curvature=parabolic_min(theta_test,NLL_y,plot=True)
 print("min:",theta_min)
 theta_minp=0.5+theta_min
 theta_minn=theta_min-0.5
 print("min+:",theta_minp)
 print("min-:",theta_minn)
+print("curvature:",curvature)
 
-#def parabolic_min_err(x_min,x_array):
+#%%
+
+def univariate(theta,delta_m):
+    theta_min=theta[np.random.randint(0,499)]
+    delta_m_min=delta_m[np.random.randint(0,499)]
+    
+    for j in range(10):
+        NLL_rate=[]
+        for i in range(len(theta_test)):
+            NLL_rate.append(unOssFlux*survival_prob(E,theta_test[i],delta_m_min,L))
+            
+        NLL_y=[]
+        for i in range(len(NLL_rate)):
+            NLL_y.append(NLL(NLL_rate[i],data))
+        
+        theta_min,theta_test3,theta_min_curvature=parabolic_min(theta_test,NLL_y,plot=False)
+        
+        for i in range(len(D_m_test)):
+            NLL_rate.append(unOssFlux*survival_prob(E,theta_min,D_m_test[i],L))
+            
+        NLL_y=[]
+        for i in range(len(NLL_rate)):
+            NLL_y.append(NLL(NLL_rate[i],data))
+        
+        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y,plot=False)
+    
+    return theta_min,delta_m_min
+
+
+        
+theta_min,delta_m_min=univariate(theta_test,D_m_test)
+print(theta_min,delta_m_min)
+
+#%%
+
+        
+        
+    
     
         
 
