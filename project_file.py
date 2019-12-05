@@ -5,31 +5,38 @@ Things to do:
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
+
 
 #inital values
 theta=np.pi/4
 D_m=2.4e-3
 L=295
 
-data,unOssFlux=np.loadtxt("data_mika.csv",delimiter=',',unpack=True)
+data,unOssFlux=np.loadtxt("data_mika.csv",delimiter=',',unpack=True)#inporting the data
 
-def survival_prob(E,theta,D_m,L):#survival probability
+def survival_prob(E,theta,D_m,L):#survival probability for muon neutrino 
     return 1-(np.sin(2*theta)**2)*(np.sin(1.267*(D_m)*L/E))**2
 
-E=np.linspace(0,10,num=200,endpoint=True)+0.025#in the region of interest.
-E_data=np.linspace(0,10,num=200,endpoint=True)+0.025
+E=np.linspace(0,10,num=200,endpoint=True)+0.025#energy in the region of interest.
+#E_data=np.linspace(0,10,num=200,endpoint=True)+0.025
 #%%
-D_m_test=np.linspace(2.4e-3 -0.5*2.4e-3,2.4e-3 +0.5*2.4e-3,num=100,endpoint=False)
-theta_test=np.linspace(np.pi/4-np.pi/4,np.pi/4,num=100,endpoint=False)
+D_m_test=np.linspace(0,4e-3,num=100,endpoint=False)#a range for the oscillation parameters 
+theta_test=np.linspace(0,np.pi/4,num=100,endpoint=False)
 
-#lineType=['-','--','-.',':']
+#"names" used for finding an approximation of the parameters
 names_theta=[]
 for i in range(len(theta_test)):
     names_theta.append(str(theta_test[i]))
 names_D_m=[]
 for i in range(len(D_m_test)):
     names_D_m.append(str(D_m_test[i]))
-#%%
+#%% plotting graph for each value of the parameter in the range.
+"""
+Need to:
+    -produce a set of plots for all given combination of the parameters. Use it to get a good approx for the parameters that fit the data the best.
+"""
+
 """
 plt.figure(1)#survival probability plot
 for i in range(len(D_m_test)-1):
@@ -50,6 +57,7 @@ plt.show()
 Note that the data for a histogram (data is binned), therefore the line graph is plotted with
 energy for each point representing the middle of the bin. E.g. first point E=0.025
 """
+"""
 plt.figure(3)#plot of Unoscillated flux
 plt.bar(x=E_data,height=unOssFlux,width=0.05,color='blue',label="Unoscillated flux")
 plt.bar(x=E_data,height=unOssFlux*survival_prob(E_data,theta,D_m,L),width=0.05,color='red',label="Unoscillated flux with Survival Prob applied")
@@ -58,7 +66,7 @@ plt.xlabel("energy (GeV)")
 plt.ylabel("No. of occurrences")
 plt.grid()
 plt.show()
-
+"""
 #%% c
 """
 #plt.figure(4)#plot of data
@@ -87,20 +95,20 @@ for i in range(len(D_m_test)-1):
     plt.show()
 """
 #%% NLL as a function of theta
-    
-def NLL(R,O):
+"""
+
+"""    
+def NLL(R,O): #finds the NLL
     sum0=0
     for i in range(len(R)):
         if O[i]==0:
             sum0+=R[i]-O[i]
         else:
             sum0+=R[i]-O[i]+O[i]*np.log(O[i]/R[i])
-        """
-        0.05*R[i]=number of events
-        R[i]=event rate
-        """
     return sum0
-
+"""
+Need to put the next 2 for loops into the NLL function. 
+"""
 NLL_rate=[]
 for i in range(len(theta_test)):
     NLL_rate.append(unOssFlux*survival_prob(E,theta_test[i],D_m,L))
@@ -118,9 +126,9 @@ plt.show()
 
 #%% minimasation
 def parabolic_min(x,y,plot=False):
-    i1=300+np.random.randint(0,100)
-    i2=400+np.random.randint(-50,50)
-    i3=500+np.random.randint(-100,0)
+    i1=50
+    i2=70
+    i3=90
     x_test=[x[i1],x[i2],x[i3]]
     y_test=[y[i1],y[i2],y[i3]]
 
@@ -153,6 +161,10 @@ def parabolic_min(x,y,plot=False):
     return x_test[y_test.index(min(y_test))],x_test1,C
 
 #%%
+    
+"""
+Need to fix the error finding. Use the stdev method discussed.
+"""
 theta_min,theta_test3,curvature=parabolic_min(theta_test,NLL_y,plot=True)
 print("min:",theta_min)
 theta_minp=0.5+theta_min
@@ -164,10 +176,16 @@ print("curvature:",curvature)
 #%%
 
 def univariate(theta,delta_m):
-    theta_min=theta[np.random.randint(0,499)]
-    delta_m_min=delta_m[np.random.randint(0,499)]
-    
-    for j in range(10):
+    theta_min=theta[90]
+    delta_m_min=delta_m[90]
+    old_theta_min=0
+    old_delta_m_min=0
+    theta_1=[theta_min]
+    delta_m_1=[delta_m_min]
+    while abs(old_theta_min-theta_min)>0.00001 and abs(old_delta_m_min-delta_m_min)>0.00001:
+    #for k in range(10):
+        old_theta_min=theta_min
+        old_delta_m_min=delta_m_min
         NLL_rate=[]
         for i in range(len(theta_test)):
             NLL_rate.append(unOssFlux*survival_prob(E,theta_test[i],delta_m_min,L))
@@ -177,28 +195,128 @@ def univariate(theta,delta_m):
             NLL_y.append(NLL(NLL_rate[i],data))
         
         theta_min,theta_test3,theta_min_curvature=parabolic_min(theta_test,NLL_y,plot=False)
+        theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)
         
+        NLL_rate_1=[]
         for i in range(len(D_m_test)):
-            NLL_rate.append(unOssFlux*survival_prob(E,theta_min,D_m_test[i],L))
+            NLL_rate_1.append(unOssFlux*survival_prob(E,theta_min,D_m_test[i],L))
             
-        NLL_y=[]
+        NLL_y_1=[]
         for i in range(len(NLL_rate)):
-            NLL_y.append(NLL(NLL_rate[i],data))
+            NLL_y_1.append(NLL(NLL_rate_1[i],data))
         
-        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y,plot=False)
-    
-    return theta_min,delta_m_min
+        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y_1,plot=False)
+        theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)
+        
+        
+    return theta_1,delta_m_1
 
 
         
 theta_min,delta_m_min=univariate(theta_test,D_m_test)
-print(theta_min,delta_m_min)
+print(theta_min[-1],delta_m_min[-1])
 
 #%%
 
-        
-        
-    
-    
-        
+theta_1,D_m_1=np.meshgrid(theta_test,D_m_test)
 
+def survival_prob_new(E,theta_1,D_m_1,L):
+    #E array of 200
+    #theta,D_m array of 200
+    #function should return [200*200,200] shape
+    prob_b=[]
+    for i in range(len(theta_1)):
+        prob=[]
+        for j in range(len(D_m_1[0])):
+           prob.append(1-(np.sin(2*theta_1[i][j])**2)*(np.sin(1.267*(D_m_1[i][j])*L/E))**2) 
+        prob_b.append(prob)
+    return prob_b
+
+sur_prob=survival_prob_new(E,theta_1,D_m_1,L)
+
+def NLL_new(sur_prob):
+    rate_b=[]
+    for i in range(len(sur_prob)):
+        rate=[]
+        for j in range(len(sur_prob[0])):
+            rate.append(unOssFlux*sur_prob[i][j])
+        rate_b.append(rate)
+        
+    NLL_y_b=[]
+    for i in range(len(rate_b)):
+        NLL_y=[]
+        for j in range(len(rate_b[0])):
+            NLL_y.append(NLL(rate_b[i][j],data))
+        NLL_y_b.append(NLL_y)
+        
+    return NLL_y_b
+
+Z=NLL_new(sur_prob)
+fig = plt.figure()
+surf=plt.pcolormesh(theta_1,D_m_1, Z, cmap=cm.coolwarm) 
+fig.colorbar(surf, shrink=0.5, aspect=5)
+for i in range(len(theta_min)):
+    plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="black")
+print(theta_min[-1],delta_m_min[-1])
+#%%
+#fig = plt.figure()
+#ax = plt.axes(projection='3d')
+#
+#ax.plot_surface(theta_1,D_m_1, np.array(Z),cmap='viridis', edgecolor='none')
+#ax.set_title('Surface plot')
+#plt.show()
+
+#%%
+def gradMethod(x,y,a=0.000000001,delta_theta=0.001,delta_m=0.0001):
+    x_min=x[90]
+    y_min=y[90]
+#    x_min=0.6777809204207589
+#    y_min=0.0026619195151839697
+    x_min_old=0
+    y_min_old=0
+    
+    x_array=[x_min]
+    y_array=[y_min]
+    zx=[]
+    
+    while abs(y_min-y_min_old)>0.000000001 and abs(x_min-x_min_old)>0.000000001 :
+#    for k in range(20):
+    
+        x_min_old=x_min
+        y_min_old=y_min
+        
+        sur_prob_0=unOssFlux*survival_prob(E,x_min,y_min,L)
+        z_0=NLL(sur_prob_0,data)
+        zx.append(z_0)
+            
+        sur_prob_x1=unOssFlux*survival_prob(E,x_min+delta_theta,y_min,L)
+        z_x1=NLL(sur_prob_x1,data)
+        diff_x=(z_x1-z_0)/delta_theta
+        
+        sur_prob_y1=unOssFlux*survival_prob(E,x_min,y_min+delta_m,L)
+        z_y1=NLL(sur_prob_y1,data)
+        diff_y=(z_y1-z_0)/delta_m
+        
+        x_min=x_min_old-a*diff_x
+        y_min=y_min_old-a*diff_y
+        
+        x_array.append(x_min)
+        y_array.append(y_min)
+    
+    return x_array,y_array,zx
+
+theta_min_g,delta_m_min_g,zx=gradMethod(theta_test,D_m_test)
+for i in range(len(theta_min_g)):
+    plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green")
+plt.show()
+print(theta_min_g[-1])
+print(delta_m_min_g[-1])
+#plt.plot(delta_m_min_g,zx,'.-')
+##plt.plot(theta_min_g,zx,'.-')
+##plt.plot(theta_min_g[-1],zx[-1],'or')
+##plt.plot(theta_min_g[0],zx[0],'o',color="black")
+#plt.plot(delta_m_min_g[-1],zx[-1],'or')
+#plt.plot(delta_m_min_g[0],zx[0],'o',color="black")
+        
