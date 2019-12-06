@@ -6,6 +6,7 @@ Things to do:
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from mpl_toolkits import mplot3d
 
 
 #inital values
@@ -13,7 +14,7 @@ theta=np.pi/4
 D_m=2.4e-3
 L=295
 
-data,unOssFlux=np.loadtxt("data_mika.csv",delimiter=',',unpack=True)#inporting the data
+data,unOssFlux=np.loadtxt("data.csv",delimiter=',',unpack=True)#inporting the data
 
 def survival_prob(E,theta,D_m,L):#survival probability for muon neutrino 
     return 1-(np.sin(2*theta)**2)*(np.sin(1.267*(D_m)*L/E))**2
@@ -22,7 +23,7 @@ E=np.linspace(0,10,num=200,endpoint=True)+0.025#energy in the region of interest
 #E_data=np.linspace(0,10,num=200,endpoint=True)+0.025
 #%%
 D_m_test=np.linspace(0,4e-3,num=100,endpoint=False)#a range for the oscillation parameters 
-theta_test=np.linspace(0,np.pi/4,num=100,endpoint=False)
+theta_test=np.linspace(0,2*np.pi/4,num=100,endpoint=False)
 
 #"names" used for finding an approximation of the parameters
 names_theta=[]
@@ -126,9 +127,9 @@ plt.show()
 
 #%% minimasation
 def parabolic_min(x,y,plot=False):
-    i1=50
-    i2=70
-    i3=90
+    i1=40
+    i2=60
+    i3=80
     x_test=[x[i1],x[i2],x[i3]]
     y_test=[y[i1],y[i2],y[i3]]
 
@@ -176,13 +177,13 @@ print("curvature:",curvature)
 #%%
 
 def univariate(theta,delta_m):
-    theta_min=theta[90]
-    delta_m_min=delta_m[90]
+    theta_min=theta[20]
+    delta_m_min=delta_m[50]
     old_theta_min=0
     old_delta_m_min=0
     theta_1=[theta_min]
     delta_m_1=[delta_m_min]
-    while abs(old_theta_min-theta_min)>0.00001 and abs(old_delta_m_min-delta_m_min)>0.00001:
+    while abs(old_theta_min-theta_min)>0.0000001 and abs(old_delta_m_min-delta_m_min)>0.0000001:
     #for k in range(10):
         old_theta_min=theta_min
         old_delta_m_min=delta_m_min
@@ -219,7 +220,6 @@ theta_min,delta_m_min=univariate(theta_test,D_m_test)
 print(theta_min[-1],delta_m_min[-1])
 
 #%%
-
 theta_1,D_m_1=np.meshgrid(theta_test,D_m_test)
 
 def survival_prob_new(E,theta_1,D_m_1,L):
@@ -260,6 +260,7 @@ fig.colorbar(surf, shrink=0.5, aspect=5)
 for i in range(len(theta_min)):
     plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="black")
 print(theta_min[-1],delta_m_min[-1])
+
 #%%
 #fig = plt.figure()
 #ax = plt.axes(projection='3d')
@@ -269,9 +270,9 @@ print(theta_min[-1],delta_m_min[-1])
 #plt.show()
 
 #%%
-def gradMethod(x,y,a=0.000000001,delta_theta=0.001,delta_m=0.0001):
-    x_min=x[90]
-    y_min=y[90]
+def gradMethod(x,y,a1=0.00001,a2=0.000000001,delta_theta=0.01,delta_m=0.0001):
+    x_min=x[20]
+    y_min=y[50]
 #    x_min=0.6777809204207589
 #    y_min=0.0026619195151839697
     x_min_old=0
@@ -281,8 +282,8 @@ def gradMethod(x,y,a=0.000000001,delta_theta=0.001,delta_m=0.0001):
     y_array=[y_min]
     zx=[]
     
-    while abs(y_min-y_min_old)>0.000000001 and abs(x_min-x_min_old)>0.000000001 :
-#    for k in range(20):
+    while abs(y_min-y_min_old)>0.0000000001 and abs(x_min-x_min_old)>0.000001 :
+#    for k in range(1000):
     
         x_min_old=x_min
         y_min_old=y_min
@@ -299,8 +300,8 @@ def gradMethod(x,y,a=0.000000001,delta_theta=0.001,delta_m=0.0001):
         z_y1=NLL(sur_prob_y1,data)
         diff_y=(z_y1-z_0)/delta_m
         
-        x_min=x_min_old-a*diff_x
-        y_min=y_min_old-a*diff_y
+        x_min=x_min_old-a1*diff_x
+        y_min=y_min_old-a2*diff_y
         
         x_array.append(x_min)
         y_array.append(y_min)
@@ -311,12 +312,86 @@ theta_min_g,delta_m_min_g,zx=gradMethod(theta_test,D_m_test)
 for i in range(len(theta_min_g)):
     plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green")
 plt.show()
-print(theta_min_g[-1])
-print(delta_m_min_g[-1])
+print(theta_min_g[-1],delta_m_min_g[-1])
+print(theta_min[-1],delta_m_min[-1])
 #plt.plot(delta_m_min_g,zx,'.-')
 ##plt.plot(theta_min_g,zx,'.-')
 ##plt.plot(theta_min_g[-1],zx[-1],'or')
 ##plt.plot(theta_min_g[0],zx[0],'o',color="black")
 #plt.plot(delta_m_min_g[-1],zx[-1],'or')
 #plt.plot(delta_m_min_g[0],zx[0],'o',color="black")
+#%%
+sig_rate_test=np.linspace(0,2,num=100,endpoint=False)
+
+def surv_prob_corr(sig_rate,E,theta,D_m,L):
+    return survival_prob(E,theta,D_m,L)*sig_rate*E
+
+
+def univariate_corr(theta,delta_m,sig_rate):
+    theta_min=theta[90]
+    delta_m_min=delta_m[90]
+    sig_rate_min=sig_rate[90]
+    
+    old_theta_min=0
+    old_delta_m_min=0
+    old_sig_rate_min=0
+    
+    theta_1=[theta_min]
+    delta_m_1=[delta_m_min]
+    sig_rate_1=[sig_rate_min]
+    
+    while abs(old_theta_min-theta_min)>0.00001 and abs(old_delta_m_min-delta_m_min)>0.00001 and abs(old_sig_rate_min-sig_rate_min)>0.0001:
+    #for k in range(10):
+        old_theta_min=theta_min
+        old_delta_m_min=delta_m_min
+        old_sig_rate_min=sig_rate_min
         
+        NLL_rate=[]
+        for i in range(len(theta_test)):
+            NLL_rate.append(unOssFlux*surv_prob_corr(sig_rate_min,E,theta_test[i],delta_m_min,L))
+            
+        NLL_y=[]
+        for i in range(len(NLL_rate)):
+            NLL_y.append(NLL(NLL_rate[i],data))
+        
+        theta_min,theta_test3,theta_min_curvature=parabolic_min(theta_test,NLL_y,plot=False)
+        theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)
+        sig_rate_1.append(sig_rate_min)
+        
+        NLL_rate_1=[]
+        for i in range(len(D_m_test)):
+            NLL_rate_1.append(unOssFlux*surv_prob_corr(sig_rate_min,E,theta_min,D_m_test[i],L))
+            
+        NLL_y_1=[]
+        for i in range(len(NLL_rate_1)):
+            NLL_y_1.append(NLL(NLL_rate_1[i],data))
+        
+        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y_1,plot=False)
+        theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)
+        sig_rate_1.append(sig_rate_min)
+        
+        NLL_rate_2=[]
+        for i in range(len(sig_rate_test)):
+            NLL_rate_2.append(unOssFlux*surv_prob_corr(sig_rate_test[i],E,theta_min,delta_m_min,L))
+            
+        NLL_y_2=[]
+        for i in range(len(NLL_rate_2)):
+            NLL_y_2.append(NLL(NLL_rate_2[i],data))
+        
+        sig_rate_min,sig_rate_test3,sig_rate_curvature=parabolic_min(sig_rate_test,NLL_y_2,plot=False)
+        theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)
+        sig_rate_1.append(sig_rate_min)
+        
+    return theta_1,delta_m_1,sig_rate_1
+
+
+theta_min,delta_m_min,sig_rate_min=univariate_corr(theta_test,D_m_test,sig_rate_test)
+print(theta_min[-1],delta_m_min[-1],sig_rate_min[-1])
+#%%
+plt.figure()
+plt.bar(x=E,height=unOssFlux*surv_prob_corr(1.2846535223642612,E,0.7853981633974484,0.00233318519016147,L),color='red',width=0.05)
+plt.bar(x=E,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
+plt.show()
