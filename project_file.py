@@ -25,34 +25,7 @@ E=np.linspace(0,10,num=200,endpoint=True)+0.025#energy in the region of interest
 D_m_test=np.linspace(0,4e-3,num=100,endpoint=False)#a range for the oscillation parameters 
 theta_test=np.linspace(0,2*np.pi/4,num=100,endpoint=False)
 
-#"names" used for finding an approximation of the parameters
-names_theta=[]
-for i in range(len(theta_test)):
-    names_theta.append(str(theta_test[i]))
-names_D_m=[]
-for i in range(len(D_m_test)):
-    names_D_m.append(str(D_m_test[i]))
-#%% plotting graph for each value of the parameter in the range.
-"""
-Need to:
-    -produce a set of plots for all given combination of the parameters. Use it to get a good approx for the parameters that fit the data the best.
-"""
 
-"""
-plt.figure(1)#survival probability plot
-for i in range(len(D_m_test)-1):
-    plt.plot(E,survival_prob(E,theta,D_m_test[i+1],L),'-',label=names_D_m[i])
-plt.legend()
-plt.grid()
-plt.show()
-
-plt.figure(2)#survival probability plot
-for i in range(len(theta_test)-1):
-    plt.plot(E,survival_prob(E,theta_test[i+1],D_m,L),'-',label=names_theta[i])
-plt.legend()
-plt.grid()
-plt.show()
-"""
 #%%
 """
 Note that the data for a histogram (data is binned), therefore the line graph is plotted with
@@ -68,33 +41,7 @@ plt.ylabel("No. of occurrences")
 plt.grid()
 plt.show()
 """
-#%% c
-"""
-#plt.figure(4)#plot of data
-#plt.bar(x=E_data,height=unOssFlux*survival_prob(E_data,theta,D_m,L),width=0.05,color='red',label="Unoscillated flux with Survival Prob applied")
-#plt.bar(x=E_data,height=unOssFlux*survival_prob(E_data,theta,D_m,L),width=0.05,color='red',label="Unoscillated flux with Survival Prob applied")
-for i in range(len(theta_test)-1):
-    plt.figure(i+5)
-    plt.bar(x=E_data,height=unOssFlux*survival_prob(E,theta_test[i+1],D_m,L),color='red',width=0.05,label=names_theta[i])
-    plt.bar(x=E_data,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
-    plt.xlabel("energy (GeV)")
-    plt.ylabel("No. of occurrences")
-    plt.legend()
-    plt.grid()
-    plt.show()
-"""
-#%% To test effect of D_m changing
-"""
-for i in range(len(D_m_test)-1):
-    plt.figure(i+5)
-    plt.bar(x=E_data,height=unOssFlux*survival_prob(E,theta,D_m_test[i],L),color='red',width=0.05,label=names_D_m[i])
-    plt.bar(x=E_data,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
-    plt.xlabel("energy (GeV)")
-    plt.ylabel("No. of occurrences")
-    plt.legend()
-    plt.grid()
-    plt.show()
-"""
+
 #%% NLL as a function of theta
 """
 
@@ -128,15 +75,17 @@ plt.show()
 #%% minimasation
 def parabolic_min(x,y,plot=False):
     i1=40
-    i2=60
-    i3=80
+    i2=51
+    i3=60
     x_test=[x[i1],x[i2],x[i3]]
     y_test=[y[i1],y[i2],y[i3]]
 
     current_min=1000
-    colour=["red","black","blue"]
+    colour=["black","red","blue","green","purple","orange","grey"]
     c_index=0
-    while min(y_test)!=current_min:
+    while abs(min(y_test)-current_min)>1e-10:
+    #for k in range(4):
+        print(len(x_test))
         current_min=min(y_test)
         x_test1=x_test
         if plot!=False:
@@ -158,6 +107,8 @@ def parabolic_min(x,y,plot=False):
     
     d=(x_test[1]-x_test[0])*(x_test[2]-x_test[0])*(x_test[2]-x_test[1])
     C=(x_test[2]-x_test[1])*y_test[0]/d + (x_test[0]-x_test[2])*y_test[1]/d +(x_test[1]-x_test[0])*y_test[2]/d
+    
+    #error by standard deviation
   
     return x_test[y_test.index(min(y_test))],x_test1,C
 
@@ -168,10 +119,7 @@ Need to fix the error finding. Use the stdev method discussed.
 """
 theta_min,theta_test3,curvature=parabolic_min(theta_test,NLL_y,plot=True)
 print("min:",theta_min)
-theta_minp=0.5+theta_min
-theta_minn=theta_min-0.5
-print("min+:",theta_minp)
-print("min-:",theta_minn)
+
 print("curvature:",curvature)
 
 #%%
@@ -283,7 +231,6 @@ def gradMethod(x,y,a1=0.00001,a2=0.000000001,delta_theta=0.01,delta_m=0.0001):
     zx=[]
     
     while abs(y_min-y_min_old)>0.0000000001 and abs(x_min-x_min_old)>0.000001 :
-#    for k in range(1000):
     
         x_min_old=x_min
         y_min_old=y_min
@@ -341,7 +288,7 @@ def univariate_corr(theta,delta_m,sig_rate):
     sig_rate_1=[sig_rate_min]
     
     while abs(old_theta_min-theta_min)>0.00001 and abs(old_delta_m_min-delta_m_min)>0.00001 and abs(old_sig_rate_min-sig_rate_min)>0.0001:
-    #for k in range(10):
+
         old_theta_min=theta_min
         old_delta_m_min=delta_m_min
         old_sig_rate_min=sig_rate_min
@@ -388,10 +335,70 @@ def univariate_corr(theta,delta_m,sig_rate):
     return theta_1,delta_m_1,sig_rate_1
 
 
-theta_min,delta_m_min,sig_rate_min=univariate_corr(theta_test,D_m_test,sig_rate_test)
-print(theta_min[-1],delta_m_min[-1],sig_rate_min[-1])
+theta_min_4,delta_m_min_4,sig_rate_min_4=univariate_corr(theta_test,D_m_test,sig_rate_test)
+print(theta_min_4[-1],delta_m_min_4[-1],sig_rate_min_4[-1])
 #%%
-plt.figure()
-plt.bar(x=E,height=unOssFlux*surv_prob_corr(1.2846535223642612,E,0.7853981633974484,0.00233318519016147,L),color='red',width=0.05)
-plt.bar(x=E,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
-plt.show()
+#plt.figure()
+#plt.bar(x=E,height=unOssFlux*surv_prob_corr(1.2846535223642612,E,0.7853981633974484,0.00233318519016147,L),color='red',width=0.05)
+#plt.bar(x=E,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
+#plt.show()
+#
+#plt.figure()
+#plt.bar(x=E,height=unOssFlux*survival_prob(E,0.7853981633974484,0.00233318519016147,L),color='red',width=0.05)
+#plt.bar(x=E,height=data,width=0.05,color='blue',alpha=0.7,label="Data")
+#plt.show()
+#%%
+def gradMethod_corr(x,y,j,a1=0.00001,a2=0.000000001,a3=0.000001,delta_theta=0.01,delta_m=0.0001,delta_sig_rate=0.0001):
+    x_min=x[90]
+    y_min=y[90]
+    j_min=j[90]
+#    x_min=0.6777809204207589
+#    y_min=0.0026619195151839697
+    x_min_old=0
+    y_min_old=0
+    j_min_old=0
+    
+    x_array=[x_min]
+    y_array=[y_min]
+    j_array=[j_min]
+    
+    while abs(y_min-y_min_old)>0.0000000001 and abs(x_min-x_min_old)>0.000001 and abs(j_min-j_min_old)>0.000001 :
+#    for k in range(1000):
+    
+        x_min_old=x_min
+        y_min_old=y_min
+        j_min_old=j_min
+        
+        sur_prob_0=unOssFlux*surv_prob_corr(j_min,E,x_min,y_min,L)
+        z_0=NLL(sur_prob_0,data)
+            
+        sur_prob_x1=unOssFlux*surv_prob_corr(j_min,E,x_min+delta_theta,y_min,L)
+        z_x1=NLL(sur_prob_x1,data)
+        diff_x=(z_x1-z_0)/delta_theta
+        
+        sur_prob_y1=unOssFlux*surv_prob_corr(j_min,E,x_min,y_min+delta_m,L)
+        z_y1=NLL(sur_prob_y1,data)
+        diff_y=(z_y1-z_0)/delta_m
+        
+        sur_prob_j1=unOssFlux*surv_prob_corr(j_min+delta_sig_rate,E,x_min,y_min,L)
+        z_j1=NLL(sur_prob_j1,data)
+        diff_j=(z_j1-z_0)/delta_m
+        
+        x_min=x_min_old-a1*diff_x
+        y_min=y_min_old-a2*diff_y
+        j_min=j_min_old-a3*diff_j
+        
+        x_array.append(x_min)
+        y_array.append(y_min)
+        j_array.append(j_min)
+    
+    return x_array,y_array,j_array
+
+theta_min_j,delta_m_min_j,sig_rate_min_j=gradMethod_corr(theta_test,D_m_test,sig_rate_test)
+#for i in range(len(theta_min_g)):
+#    plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green")
+#plt.show()
+print(theta_min_g[-1],delta_m_min_g[-1],sig_rate_min_j[-1])
+print(theta_min_4[-1],delta_m_min_4[-1],sig_rate_min_4[-1])
+#%%
+
