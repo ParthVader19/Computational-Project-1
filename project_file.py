@@ -5,42 +5,37 @@ Things to do:
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from mpl_toolkits import mplot3d
+#from matplotlib import cm
+#from mpl_toolkits import mplot3d
 
 
-#inital values
+#values given in the project
 theta=np.pi/4
 D_m=2.4e-3
 L=295
 
-data,unOssFlux=np.loadtxt("data.csv",delimiter=',',unpack=True)#inporting the data
+
+data,unOssFlux=np.loadtxt("data.csv",delimiter=',',unpack=True)#importing the data
 
 def survival_prob(E,theta,D_m,L):#survival probability for muon neutrino 
     return 1-(np.sin(2*theta)**2)*(np.sin(1.267*(D_m)*L/E))**2
 
 E=np.linspace(0,10,num=200,endpoint=True)+0.025#energy in the region of interest.
-#E_data=np.linspace(0,10,num=200,endpoint=True)+0.025
-#%%
 D_m_test=np.linspace(0,4e-3,num=100,endpoint=False)#a range for the oscillation parameters 
 theta_test=np.linspace(0,2*np.pi/4,num=100,endpoint=False)
 
 
+
 #%%
-"""
-Note that the data for a histogram (data is binned), therefore the line graph is plotted with
-energy for each point representing the middle of the bin. E.g. first point E=0.025
-"""
-"""
-plt.figure(3)#plot of Unoscillated flux
-plt.bar(x=E_data,height=unOssFlux,width=0.05,color='blue',label="Unoscillated flux")
-plt.bar(x=E_data,height=unOssFlux*survival_prob(E_data,theta,D_m,L),width=0.05,color='red',label="Unoscillated flux with Survival Prob applied")
+plt.figure()#plot of Unoscillated flux x survial probalitity as a function of mixing angle and mass squared
+plt.bar(x=E,height=data,width=0.05,color='blue',label="Unoscillated flux")
+plt.bar(x=E,height=unOssFlux*survival_prob(E,theta_test[54],D_m_test[56],L),width=0.05,alpha=0.7,color='red',label="Unoscillated flux with Survival Prob applied")
 plt.legend()
 plt.xlabel("energy (GeV)")
 plt.ylabel("No. of occurrences")
 plt.grid()
 plt.show()
-"""
+
 
 #%% NLL as a function of theta
 """
@@ -203,8 +198,9 @@ def NLL_new(sur_prob):
 
 Z=NLL_new(sur_prob)
 fig = plt.figure()
-surf=plt.pcolormesh(theta_1,D_m_1, Z, cmap=cm.coolwarm) 
+surf=plt.pcolormesh(theta_1,D_m_1, Z, cmap='inferno') 
 fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.contour(theta_1,D_m_1, Z)
 for i in range(len(theta_min)):
     plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="black")
 print(theta_min[-1],delta_m_min[-1])
