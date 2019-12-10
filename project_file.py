@@ -21,52 +21,45 @@ unOssFlux=[1.21438190	,5.62230639	,11.77215522	,18.36411225	,27.21794480	,38.102
 ]
 
 #survival probablity assuming that cross-section is constant with energy
-def survival_prob(theta,D_m,E=E,L=295):
+def survival_prob(theta,D_m,E=E,L=L):
     return 1-(np.sin(2*theta)**2)*(np.sin(1.267*(D_m)*L/E))**2
-
-plt.figure()#plot of Unoscillated flux x survial probalitity as a function of mixing angle and mass squared, compared to the actual data
-plt.bar(x=E,height=data,width=0.05,color='blue',label="Observed events")
-plt.bar(x=E,height=unOssFlux*survival_prob(theta_test[45],D_m_test[60]),width=0.05,alpha=0.7,color='red',label="Expected event rate")
-plt.legend()
-plt.xlabel("Energy (GeV)")
-plt.ylabel("No. of occurrences")
-plt.grid()
-plt.show()
 
 # NLL as a function of theta
   
-def NLL(theta,m,O=data,variable="theta"): #finds the NLL for a given a range of mixing angle.
+def NLL(theta,m,O=data,unOssFlux=unOssFlux,variable="theta",single=False): #finds the NLL for a given a range of mixing angle.
     
-    
-    NLL_rate=[]#loop used to get an array of expected oscillating rate 
-    if variable=="theta":
-        for i in range(len(theta)):
-            NLL_rate.append(unOssFlux*survival_prob(theta[i],m))
+    if single==False:
+        NLL_rate=[]#loop used to get an array of expected oscillating rate 
+        if variable=="theta":
+            for i in range(len(theta)):
+                NLL_rate.append(unOssFlux*survival_prob(theta[i],m))
+        else:
+            for i in range(len(m)):
+                NLL_rate.append(unOssFlux*survival_prob(theta,m[i]))
     else:
-        for i in range(len(m)):
-            NLL_rate.append(unOssFlux*survival_prob(theta,m[i]))
-    
-    NLL_y=[]#use the expected oscillating rate and the actual data to perform NLL using the formula given
-    for j in range(len(NLL_rate)):
-        sum0=0
-        for i in range(len(NLL_rate[j])):
+        NLL_rate=unOssFlux*survival_prob(theta,m)
+        
+    if single==False:
+        NLL_y=[]#use the expected oscillating rate and the actual data to perform NLL using the given formula
+        for j in range(len(NLL_rate)):
+            sum0=0
+            for i in range(len(NLL_rate[j])):
+                if O[i]==0:#computer cannot handle 0*np.log(0) hence condition used to avoid 'nan' answer
+                    sum0+=NLL_rate[j][i]-O[i]
+                else:
+                    sum0+=NLL_rate[j][i]-O[i]+O[i]*np.log(O[i]/NLL_rate[j][i])
+            NLL_y.append(sum0)
+    else:
+        #use the expected oscillating rate and the actual data to perform NLL using the given formula
+        NLL_y=0
+        for i in range(len(NLL_rate)):
             if O[i]==0:#computer cannot handle 0*np.log(0) hence condition used to avoid 'nan' answer
-                sum0+=NLL_rate[j][i]-O[i]
+                NLL_y+=NLL_rate[i]-O[i]
             else:
-                sum0+=NLL_rate[j][i]-O[i]+O[i]*np.log(O[i]/NLL_rate[j][i])
-        NLL_y.append(sum0)
-    
+                NLL_y+=NLL_rate[i]-O[i]+O[i]*np.log(O[i]/NLL_rate[i])
+            
     return NLL_y
 
-
-NLL_y=NLL(theta_test,D_m_test[60])#NLL (as a function of mixing angle) for the estimated mass squared value previously found
-
-plt.figure()
-plt.plot(theta_test,NLL_y,'-r')
-plt.xlabel("Theta")
-plt.ylabel("NLL")
-plt.grid()
-plt.show()
 
 def parabolic_min(x,y,plot=False):# 1 parameter minimasation using the parabolic method
 
@@ -116,25 +109,9 @@ def parabolic_min(x,y,plot=False):# 1 parameter minimasation using the parabolic
 
     return x_test[y_test.index(min(y_test))],x_test1,C
 
-plt.figure()
-theta_min,theta_test3,curvature=parabolic_min(theta_test,NLL_y,plot=True)
-plt.plot(theta_test,NLL_y,'-r',label="NLL(Theta)")
-plt.xlabel("Theta")
-plt.ylabel("NLL")
-plt.legend()
-plt.grid()
-plt.show()
 
-print("min:",theta_min)
 
-print("curvature:",curvature)
-
-#%%
-"""
-------------------------------
-continue commenting and editting!!!
-"""
-
+#the following is the univariate minimization function 
 def univariate(theta,delta_m):# 2 parameter minimasation using the parabolic method to minimise the paramaters sequential.
     
     theta_min=theta[45]#inital parameters from the beginning part.
@@ -147,102 +124,78 @@ def univariate(theta,delta_m):# 2 parameter minimasation using the parabolic met
     delta_m_1=[delta_m_min]
     
     while abs(old_theta_min-theta_min)>1e-7 and abs(old_delta_m_min-delta_m_min)>1e-7:#loop stops when the change in the minimum value of the function is very small
-        old_theta_min=theta_min
+        old_theta_min=theta_min#setting the current parameter values
         old_delta_m_min=delta_m_min
         
-        NLL_y=NLL(theta,delta_m_min)
+        NLL_y=NLL(theta,delta_m_min)#calculating NLL as a function of mixing angle for the current value of mass squared
         
-        theta_min,theta_test3,theta_min_curvature=parabolic_min(theta_test,NLL_y,plot=False)
+        theta_min,theta_test3,theta_min_curvature=parabolic_min(theta_test,NLL_y,plot=False)#performing parabolic minimisation to find the new value of mixing angle
         theta_1.append(theta_min)
+        delta_m_1.append(delta_m_min)#storing the values for plotting later
+        
+        NLL_y_1=NLL(theta_min,D_m_test,variable="m")#calculating NLL as a function of mass squared for the current value of mixing angle
+        
+        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y_1,plot=False)#performing parabolic minimisation to find the new value of mass squared
+        theta_1.append(theta_min)#storing the values for plotting later
         delta_m_1.append(delta_m_min)
         
-        NLL_y_1=NLL(theta_min,D_m_test,variable="m")
-        
-        delta_m_min,delta_m_test3,delta_m_curvature=parabolic_min(D_m_test,NLL_y_1,plot=False)
-        theta_1.append(theta_min)
-        delta_m_1.append(delta_m_min)
-        
-    return theta_1,delta_m_1
-        
-theta_min,delta_m_min=univariate(theta_test,D_m_test)
-print(theta_min[-1],delta_m_min[-1])
+    return theta_1,delta_m_1#final values of the arrays are the values of the parameters that minimise NLL
 
-#%%
-theta_1,D_m_1=np.meshgrid(theta_test,D_m_test)
-
-def survival_prob_new(E,theta_1,D_m_1,L):
+#the following function is only used for the heat map and contour plot.
+def NLL_ScalPlot(theta_1,D_m_1,E=E,L=L,O=data,unOssFlux=unOssFlux):#This functions determines the NLL for a range of mixing angle and mass squared as an array correctly shaped for a contour and heat maps
     prob_b=[]
-    for i in range(len(theta_1)):
+    for i in range(len(theta_1)):#loop determines the survival probability array in the correct shape
         prob=[]
         for j in range(len(D_m_1[0])):
            prob.append(1-(np.sin(2*theta_1[i][j])**2)*(np.sin(1.267*(D_m_1[i][j])*L/E))**2) 
         prob_b.append(prob)
-    return prob_b
-
-sur_prob=survival_prob_new(E,theta_1,D_m_1,L)
-
-def NLL_new(sur_prob):
+    
     rate_b=[]
-    for i in range(len(sur_prob)):
+    for i in range(len(prob_b)):#loop determines the expected rate array in the correct shape
         rate=[]
-        for j in range(len(sur_prob[0])):
-            rate.append(unOssFlux*sur_prob[i][j])
+        for j in range(len(prob_b[0])):
+            rate.append(unOssFlux*prob_b[i][j])
         rate_b.append(rate)
         
     NLL_y_b=[]
-    for i in range(len(rate_b)):
-        NLL_y=[]
-        for j in range(len(rate_b[0])):
-            NLL_y.append(NLL(rate_b[i][j],data))
+    for i in range(len(rate_b)):#loop determines the NLL array in the correct shape
+        NLL_y=[]#use the expected oscillating rate and the actual data to perform NLL using the formula given
+        for j in range(len(rate_b[i])):
+            sum0=0
+            for k in range(len(rate_b[i][j])):
+                if O[k]==0:#computer cannot handle 0*np.log(0) hence condition used to avoid 'nan' answer
+                    sum0+=rate_b[i][j][k]-O[k]
+                else:
+                    sum0+=rate_b[i][j][k]-O[k]+O[k]*np.log(O[k]/rate_b[i][j][k])
+            NLL_y.append(sum0)
         NLL_y_b.append(NLL_y)
-        
+
     return NLL_y_b
 
-Z=NLL_new(sur_prob)
-fig = plt.figure()
-surf=plt.pcolormesh(theta_1,D_m_1, Z, cmap='inferno') 
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.contour(theta_1,D_m_1, Z)
-for i in range(len(theta_min)):
-    plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="black")
-print(theta_min[-1],delta_m_min[-1])
 
-#%%
-#fig = plt.figure()
-#ax = plt.axes(projection='3d')
-#
-#ax.plot_surface(theta_1,D_m_1, np.array(Z),cmap='viridis', edgecolor='none')
-#ax.set_title('Surface plot')
-#plt.show()
+#The following is the gradient method for minimizing NLL
+def gradMethod(x,y,a1=0.00001,a2=0.000000001,delta_theta=0.001,delta_m=0.00001):
+    x_min=x[45]
+    y_min=y[60]
 
-#%%
-def gradMethod(x,y,a1=0.00001,a2=0.000000001,delta_theta=0.01,delta_m=0.0001):
-    x_min=x[20]
-    y_min=y[50]
-#    x_min=0.6777809204207589
-#    y_min=0.0026619195151839697
     x_min_old=0
     y_min_old=0
     
     x_array=[x_min]
     y_array=[y_min]
-    zx=[]
+
     
-    while abs(y_min-y_min_old)>0.0000000001 and abs(x_min-x_min_old)>0.000001 :
+    while abs(y_min-y_min_old)>1e-9 and abs(x_min-x_min_old)>1e-9 :
     
         x_min_old=x_min
         y_min_old=y_min
         
-        sur_prob_0=unOssFlux*survival_prob(E,x_min,y_min,L)
-        z_0=NLL(sur_prob_0,data)
-        zx.append(z_0)
+        z_0=NLL(x_min,y_min,single=True)
             
-        sur_prob_x1=unOssFlux*survival_prob(E,x_min+delta_theta,y_min,L)
-        z_x1=NLL(sur_prob_x1,data)
+        z_x1=NLL(x_min+delta_theta,y_min,single=True)
         diff_x=(z_x1-z_0)/delta_theta
         
-        sur_prob_y1=unOssFlux*survival_prob(E,x_min,y_min+delta_m,L)
-        z_y1=NLL(sur_prob_y1,data)
+        z_y1=NLL(x_min,y_min+delta_m,single=True)
         diff_y=(z_y1-z_0)/delta_m
         
         x_min=x_min_old-a1*diff_x
@@ -251,20 +204,8 @@ def gradMethod(x,y,a1=0.00001,a2=0.000000001,delta_theta=0.01,delta_m=0.0001):
         x_array.append(x_min)
         y_array.append(y_min)
     
-    return x_array,y_array,zx
+    return x_array,y_array
 
-theta_min_g,delta_m_min_g,zx=gradMethod(theta_test,D_m_test)
-for i in range(len(theta_min_g)):
-    plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green")
-plt.show()
-print(theta_min_g[-1],delta_m_min_g[-1])
-print(theta_min[-1],delta_m_min[-1])
-#plt.plot(delta_m_min_g,zx,'.-')
-##plt.plot(theta_min_g,zx,'.-')
-##plt.plot(theta_min_g[-1],zx[-1],'or')
-##plt.plot(theta_min_g[0],zx[0],'o',color="black")
-#plt.plot(delta_m_min_g[-1],zx[-1],'or')
-#plt.plot(delta_m_min_g[0],zx[0],'o',color="black")
 #%%
 sig_rate_test=np.linspace(0,2,num=100,endpoint=False)
 
@@ -398,5 +339,70 @@ theta_min_j,delta_m_min_j,sig_rate_min_j=gradMethod_corr(theta_test,D_m_test,sig
 #plt.show()
 print(theta_min_g[-1],delta_m_min_g[-1],sig_rate_min_j[-1])
 print(theta_min_4[-1],delta_m_min_4[-1],sig_rate_min_4[-1])
-#%%
+#%% 
+#TESTING:
+plt.figure()#plot of Unoscillated flux x survial probalitity as a function of mixing angle and mass squared, compared to the actual data
+plt.bar(x=E,height=data,width=0.05,color='blue',label="Observed events")
+plt.bar(x=E,height=unOssFlux*survival_prob(theta_test[45],D_m_test[60]),width=0.05,alpha=0.7,color='red',label="Expected event rate")
+plt.legend()
+plt.xlabel("Energy (GeV)")
+plt.ylabel("No. of occurrences")
+plt.grid()
+plt.show()
+
+
+NLL_y=NLL(theta_test,D_m_test[60])#NLL (as a function of mixing angle) for the estimated mass squared value previously found
+
+plt.figure()
+plt.plot(theta_test,NLL_y,'-r')
+plt.xlabel("Theta")
+plt.ylabel("NLL")
+plt.grid()
+plt.show()
+
+plt.figure()
+theta_min,theta_test3,curvature=parabolic_min(theta_test,NLL_y,plot=True)
+plt.plot(theta_test,NLL_y,'-r',label="NLL(Theta)")
+plt.xlabel("Theta")
+plt.ylabel("NLL")
+plt.legend()
+plt.grid()
+plt.show()
+
+print("min:",theta_min)
+print("curvature:",curvature)
+
+
+theta_min,delta_m_min=univariate(theta_test,D_m_test)
+theta_min_g,delta_m_min_g=gradMethod(theta_test,D_m_test)
+
+theta_1,D_m_1=np.meshgrid(theta_test,D_m_test)#meshgrid function generates arrays of the parameters in the correct shape
+NLL_1=NLL_ScalPlot(theta_1,D_m_1)
+
+fig = plt.figure()
+surf=plt.pcolormesh(theta_1,D_m_1, NLL_1, cmap='inferno',) #heat map to see how NLL changes for given values of the parameters
+fig.colorbar(surf, shrink=1, aspect=10)
+cs=plt.contour(theta_1,D_m_1, NLL_1,levels=[500,600,700, 900, 1100])#contour plot
+
+
+for i in range(len(theta_min_g)):
+    if i==0:
+        plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green",label="Gradient Method")
+    else:
+        plt.plot(theta_min_g[i:i+2], delta_m_min_g[i:i+2], '.-',color="green")
+
+#plots the values of the parameters that NLL parabola at the end of each iteration. This is done by using the univariate minimization function. 
+for i in range(len(theta_min)):
+    if i==0:
+        plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="grey",label="Univariate Method")
+    else:
+        plt.plot(theta_min[i:i+2], delta_m_min[i:i+2], '.-',color="grey")
+plt.xlabel("Mixing angle")
+plt.ylabel("Change in mass sqaured")
+plt.legend()
+plt.show()
+
+
+print(theta_min_g[-1],delta_m_min_g[-1])
+print(theta_min[-1],delta_m_min[-1])
 
