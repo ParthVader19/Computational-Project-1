@@ -10,7 +10,7 @@ theta=np.pi/4
 D_m=2.4e-3
 L=295
 
-num=100
+num=200
 
 E=np.linspace(0,10,num=200,endpoint=True)+0.025#energy in the region of interest.
 
@@ -81,7 +81,7 @@ def parabolic_min(x,y,plot=False,i1=40,i2=51,i3=60,choose_start=False):# 1 param
     colour=["black","blue","green","purple","orange","grey"]#colour and name to show the iteration in the parabolic estimation
     name=[1,2,3,4,5,6,7]
     c_index=0
-    exit_loop=0
+#    exit_loop=0
     
     while abs(min(y_test)-current_min)>1e-10:#loop stops when the change in the minimum value of the function is very small
         current_min=min(y_test)#setting the new minimum value 
@@ -289,12 +289,16 @@ def gradMethod_corr(x,y,j,sigmaON,a1=0.00001,a2=0.000000001,a3=0.000001,j1=45,j2
             
     return x_array,y_array,j_array
 
-def STerr(x,y,x_min,y_min):
+def STerr(x,y):
+    y_min=y[np.argmin(y)]
     x_n=[]
     for i in range(len(x)):
-        if y[i]-y_min<=0.5:
-            x_n.append(x[i])
-    return [x_n[0],x_n[-1]]
+        if (y[i]-y_min)<0.5:
+            if y[i]-y_min>=0:
+                x_n.append(x[i])
+                print(y[i]-y_min,x[i])
+    print('---')
+    return [x[np.argmin(y)]-x_n[0],-x[np.argmin(y)]+x_n[-1]]
 
 def err_analytic(x_min,y_min,j_min=1/E,data=data,E=E,L=L,O=data,unOssFlux=unOssFlux,variable="theta"):
     if variable=="theta":
@@ -312,7 +316,7 @@ def err_analytic(x_min,y_min,j_min=1/E,data=data,E=E,L=L,O=data,unOssFlux=unOssF
         d_1=unOssFlux*(1-(np.sin(2*x_min)**2)*(np.sin(1.267*y_min*L/E)**2))*E
         d_2=0*E
         rate=unOssFlux*surv_prob_corr(x_min,y_min,j_min)
-        a=j_min
+        a=j_min 
 
     f_2=0
     for j in range(len(rate)):
@@ -321,20 +325,33 @@ def err_analytic(x_min,y_min,j_min=1/E,data=data,E=E,L=L,O=data,unOssFlux=unOssF
     if f_2<0:
         print("!£!£:f_2 less than 0")
     return [a-1/np.sqrt(f_2),a+1/np.sqrt(f_2)]
-            
+
+def para_err(x,y):
+    x_test=[x[np.argmin(y)-3],x[np.argmin(y)],x[np.argmin(y)+3]]
+    y_test=[y[np.argmin(y)-3],y[np.argmin(y)],y[np.argmin(y)+3]]
+
+    C=2*(y_test[0]/(x_test[0]-x_test[1])*(x_test[0]-x_test[2]) + y_test[1]/(x_test[1]-x_test[0])*(x_test[1]-x_test[2]) +y_test[2]/(x_test[2]-x_test[0])*(x_test[2]-x_test[1]))
+    print(1/np.sqrt(C))
+    return [x_test[y_test.index(min(y_test))]-1/np.sqrt(C), x_test[y_test.index(min(y_test))]+1/np.sqrt(C)]
+
+def normal(x):
+    return (x-np.amin(x))/(np.amax(x)-np.amin(x))
 #%%
 #TESTING:
-time_s=time.time()
+inital_fit=unOssFlux*surv_prob_corr(theta_test[50],D_m_test[60])
+inital_fit_norm=normal(inital_fit)
+data_norm=normal(data)
+
 plt.figure()#plot of Unoscillated flux x survial probalitity as a function of mixing angle and mass squared, compared to the actual data
-plt.bar(x=E,height=data,width=0.05,color='blue',label="Observed events")
-plt.bar(x=E,height=unOssFlux*surv_prob_corr(theta_test[45],D_m_test[60]),width=0.05,alpha=0.7,color='red',label="Expected event rate")
+plt.bar(x=E,height=data_norm,width=0.05,color='blue',label="Data")
+plt.bar(x=E,height=inital_fit_norm,width=0.05,alpha=0.7,color='red',label="Expected number of neutrinos")
 plt.legend()
 plt.xlabel("Energy (GeV)")
-plt.ylabel("No. of occurrences/ Expected Rate")
+plt.ylabel('Normalised number of neutrinos')
 plt.grid()
 plt.show()
 
-
+#%%
 NLL_y=NLL(theta_test,D_m_test[60])#NLL (as a function of mixing angle) for the estimated mass squared value previously found
 
 plt.figure()
@@ -343,7 +360,7 @@ plt.xlabel(r'$\theta_{23}$')
 plt.ylabel(r'NLL($\theta_{23}$)')
 plt.grid()
 plt.show()
-
+#%%
 #NLL_y_1=NLL(theta_test[45],np.linspace(0,1000e-3,num=1000,endpoint=False)+1e-30,variable="m")#NLL (as a function of mixing angle) for the estimated mass squared value previously found
 #
 #plt.figure()
@@ -353,14 +370,15 @@ plt.show()
 #plt.grid()
 #plt.show()
 plt.figure()
-theta_min,theta_test3,para_err=parabolic_min(theta_test,NLL_y,plot=True,i1=10,i2=40,i3=60,choose_start=True)
+theta_min,theta_test3,para_err_0=parabolic_min(theta_test,NLL_y,plot=True,i1=10,i2=40,i3=60,choose_start=True)
 NLL_y_min=NLL(theta_min,D_m_test[60],single=True)
-stdev_theta=STerr(theta_test,NLL_y,theta_min,NLL_y_min)
+plt.show()
+stdev_theta=STerr(theta_test,NLL_y)
 stdev_theta_analytic=err_analytic(theta_min,D_m_test[60],variable="theta")
 
 print("Minimising Mixing Angle for Change in mass squared=",D_m_test[60],"without considering the Cross-Section:",theta_min)
 print("->Standard Dev error for Mixing Angle:",theta_min-stdev_theta[0])
-print("->Parabolic approx error for Mixing Angle:",theta_min-para_err[0])
+print("->Parabolic approx error for Mixing Angle:",theta_min-para_err_0[0])
 print("->Analytic error for Mixing Angle:",theta_min-stdev_theta_analytic[0])
 
 
@@ -373,22 +391,34 @@ plt.grid()
 plt.show()
 
 #%%
+
 theta_min_1,delta_m_min_1,sigma_1=univariate_corr(theta_test,D_m_test,sig_rate_test,sigmaON=False)
 theta_min_g,delta_m_min_g,sigma_2=gradMethod_corr(theta_test,D_m_test,sig_rate_test,sigmaON=False)
 
-stdev_theta_min=err_analytic(theta_min_1[-1],delta_m_min_1[-1],variable="theta")
-stdev_m_min=err_analytic(theta_min_1[-1],delta_m_min_1[-1],variable="m")
 
-stdev_theta_min_g=err_analytic(theta_min_g[-1],delta_m_min_g[-1],variable="theta")
-stdev_m_min_g=err_analytic(theta_min_g[-1],delta_m_min_g[-1],variable="m")
+#stdev_theta_min=para_err(theta_test,NLL(theta_test,delta_m_min_1[-1],variable="theta"))
+#stdev_m_min=para_err(D_m_test,NLL(theta_min_1[-1],D_m_test,variable="m"))
+#
+#stdev_theta_min_g=para_err(theta_test,NLL(theta_test,delta_m_min_g[-1],variable="theta"))
+#stdev_m_min_g=para_err(D_m_test,NLL(theta_min_g[-1],D_m_test,variable="m"))
+
+stdev_theta_min=STerr(theta_test,NLL(theta_test,delta_m_min_1[-1],variable="theta"))
+stdev_m_min=STerr(D_m_test,NLL(theta_min_1[-1],D_m_test,variable="m"))
+
+stdev_theta_min_g=STerr(theta_test,NLL(theta_test,delta_m_min_g[-1],variable="theta"))
+stdev_m_min_g=STerr(D_m_test,NLL(theta_min_g[-1],D_m_test,variable="m"))
+
+#stdev_theta_min_g=err_analytic(theta_min_g[-1],delta_m_min_g[-1],variable="theta")
+#stdev_m_min_g=err_analytic(theta_min_g[-1],delta_m_min_g[-1],variable="m")
 
 print('Considering only the Mixing Angle and Change in Mass Squared:' )
 print('--Univariate Method:--')
-print( '->Mixing Angle=',theta_min_1[-1],'+/-',theta_min_1[-1]-stdev_theta_min[0])
-print('->Change in Mass Squared=',delta_m_min_1[-1],'+/-',delta_m_min_1[-1]-stdev_m_min[0])
+print( '->Mixing Angle=',theta_min_1[-1],'+/-',stdev_theta_min[0])
+print('->Change in Mass Squared=',delta_m_min_1[-1],'+/-',stdev_m_min[0])
 print('--Gradient Method:--' )
-print('->Mixing Angle=',theta_min_g[-1],'+/-',theta_min_g[-1]-stdev_theta_min_g[0])
-print('->Change in Mass Squared=',delta_m_min_g[-1],'+/-',delta_m_min_g[-1]-stdev_m_min_g[0])
+print('->Mixing Angle=',theta_min_g[-1],'+/-',stdev_theta_min_g[0])
+print('->Change in Mass Squared=',delta_m_min_g[-1],'+/-',stdev_m_min_g[0])
+
 #%%
 
 theta_1,D_m_1=np.meshgrid(theta_test,D_m_test)#meshgrid function generates arrays of the parameters in the correct shape
@@ -397,8 +427,7 @@ NLL_1=NLL_ScalPlot(theta_1,D_m_1)
 fig = plt.figure()
 surf=plt.pcolormesh(theta_1,D_m_1, NLL_1, cmap='inferno',) #heat map to see how NLL changes for given values of the parameters
 fig.colorbar(surf, shrink=1, aspect=10)
-cs=plt.contour(theta_1,D_m_1, NLL_1,levels=[np.linspace(300,1000,num=15,endpoint=False)])#contour plot
-
+cs=plt.contour(theta_1,D_m_1, NLL_1,levels=np.linspace(400,1200,num=10,endpoint=False))#contour plot
 
 for i in range(len(theta_min_g)):
     if i==0:
@@ -441,13 +470,14 @@ print('->Mixing Angle=',theta_min_j[-1],'+/-',theta_min_j[-1]-stdev_theta_min_j[
 print('->Change in Mass Squared=',delta_m_min_j[-1],'+/-',delta_m_min_j[-1]-stdev_m_min_j[0])
 print('->Rate of Increase of Cross-Section=',sig_rate_min_j[-1],'+/-',sig_rate_min_j[-1]-stdev_sigma_min_j[0])
       
+#%%
 
 plt.figure()
-plt.bar(x=E,height=data,width=0.05,color='blue',label="Observed events")
-plt.bar(x=E,height=unOssFlux*surv_prob_corr(theta_min_4[-1],delta_m_min_4[-1],sig_rate_min_4[-1]),width=0.05,alpha=0.7,color='red',label="Expected event rate")
+plt.bar(x=E,height=normal(data),width=0.05,color='blue',label="Data")
+plt.bar(x=E,height=normal(unOssFlux*surv_prob_corr(theta_min_4[-1],delta_m_min_4[-1],sig_rate_min_4[-1])),width=0.05,alpha=0.7,color='red',label="Expected number of neutrinos")
 plt.legend()
-plt.xlabel(r'$\theta_{23}$')
-plt.ylabel(r'NLL($\theta_{23}$)')
+plt.xlabel("Energy (GeV)")
+plt.ylabel('Normalised number of neutrinos')
 plt.show()
 
 time_e=time.time()
@@ -455,49 +485,73 @@ time_e=time.time()
 
 #%%
 def TEST1D(x,a=0):
-    return -np.sin(x) - np.sin(a)
+    return -1000*np.sin(x) - 1000*np.sin(a)+2000
 
 def TEST2D(x,y,z=0,variable="noNeed",single="noNeed"):
-    return -(np.sin(x)+np.sin(y))
+    return -1000*np.sin(x)-1000*np.sin(y)+2000
+
 
 x=np.linspace(0,np.pi,100)
 y=np.linspace(0,np.pi,100)
 
-
 y_1d=TEST1D(x)
-
-
-plt.figure()
-parabolic_min(x,y_1d,plot=True,i1=30,i2=40,i3=60,choose_start=True)
-plt.plot(x,y_1d,color="red",label="f(x)=-sin(x)")
-plt.grid()
-plt.legend()
-plt.title("Testing parabolic minimising with f(x)=-sin(x)")
-plt.show()
 
 X,Y=np.meshgrid(x,y)
 Z=TEST2D(X,Y)
-print("--------")
+
+
+plt.figure()
+min_val,min_array,min_para_err=parabolic_min(x,y_1d,plot=True,i1=30,i2=40,i3=60,choose_start=True)
+plt.plot(x,y_1d,color="red",label="f(x)=-sin(x)")
+plt.grid()
+plt.legend()
+plt.ylabel(r'f(x)')
+plt.xlabel(r'x')
+plt.title("Parabolic minimisation with f(x)=-sin(x)")
+plt.show()
+
+f_x_min=TEST1D(min_val)
+stdev_min_val=STerr(x,y_1d)
+print('--Single Variable- Parabolic Minimisation Method: --')
+print('x_min:', min_val,'+/-',min_val-min_para_err[0])
+
+
+
+
+#%%
 x_min,y_min,j_min=univariate_corr(x,y,0,sigmaON=False,j1=10,j2=10,j3=10,NLL=TEST2D)
-#%%%
-x_min_1,y_min_1,j_min_1=gradMethod_corr(x,y,0,a1=0.01,a2=0.01,a3=0.01,j1=10,j2=10,j3=10,delta_theta=0.01,delta_m=0.01,delta_sig_rate=0.01,sigmaON=False,NLL=TEST2D)
+x_min_1,y_min_1,j_min_1=gradMethod_corr(x,y,0,a1=0.001,a2=0.001,a3=0.001,j1=10,j2=10,j3=10,delta_theta=0.001,delta_m=0.001,delta_sig_rate=0.001,sigmaON=False,NLL=TEST2D)
+
+#%%
+
+x_para_err_uni=para_err(x,TEST2D(x,y_min[-1]))
+y_para_err_uni=para_err(y,TEST2D(x_min[-1],y))
+x_para_err_grad=para_err(x,TEST2D(x,y_min_1[-1]))
+y_para_err_grad=para_err(y,TEST2D(x_min_1[-1],y))
+
+print('--Multi-Variable Methods: --')
+print('Univariate: (', x_min[-1],'+/-',x_min[-1]-x_para_err_uni[0],',',y_min[-1],'+/-',y_min[-1]-y_para_err_uni[0],')')
+print('Gradient: (', x_min_1[-1],'+/-',x_min_1[-1]-x_para_err_grad[0],',',y_min_1[-1],'+/-',y_min_1[-1]-y_para_err_grad[0],')')
 #%%
 fig1=plt.figure()
 surf1=plt.pcolormesh(X,Y, Z, cmap='inferno',) #heat map to see how NLL changes for given values of the parameters
 fig1.colorbar(surf1, shrink=1, aspect=10)
-cs_1=plt.contour(X,Y, Z,levels=[np.linspace(-2,0,num=15,endpoint=False)])#contour plot
+cs_1=plt.contour(X,Y, Z,levels=np.linspace(0,2000,num=10,endpoint=False))#contour plot
 for i in range(len(x_min)):
     if i==0:
-        plt.plot(x_min[i:i+2], y_min[i:i+2], '.-',color="green",label="Gradient Method")
+        plt.plot(x_min[i:i+2], y_min[i:i+2], '.-',color="green",label="Univariate Method ")
     else:
         plt.plot(x_min[i:i+2], y_min[i:i+2], '.-',color="green")
 
 for i in range(len(x_min_1)):
     if i==0 :
-        plt.plot(x_min_1[i:i+2], y_min_1[i:i+2], '.-',color="grey",label="Univariate Method")
+        plt.plot(x_min_1[i:i+2], y_min_1[i:i+2], '.-',color="grey",label="Gradient Method")
     elif i==len(x_min_1)-1:
         plt.plot(x_min_1[i:i+2], y_min_1[i:i+2], '.-',color="grey")
     else:
         plt.plot(x_min_1[i:i+2], y_min_1[i:i+2], '-',color="grey")
+plt.title("Multi-variable minimisation methods with f(x,y)=-sin(x)-sin(y)")
+plt.ylabel('x')
+plt.xlabel(r'y')
 plt.legend()
 plt.show()
