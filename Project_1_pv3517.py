@@ -7,7 +7,7 @@ Created on Mon Dec 16 07:30:35 2019
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+#import time
 #from matplotlib import cm
 #from mpl_toolkits import mplot3d
 
@@ -30,7 +30,7 @@ data=[0	,0	,1	,0	,8	,13	,11	,10	,5	,5	,0	,0	,8	,10	,9	,20	,12	,14	,15	,8	,5	,6	,
 #simulated event rate prediction assuming the muon neutrinos do not oscillate with energy from 0–10 GeV
 unOssFlux=[1.21438190	,5.62230639	,11.77215522	,18.36411225	,27.21794480	,38.10249543	,51.19882744	,64.91880229	,80.03030054	,97.50418953	,120.84615030	,145.78791260	,152.75765800	,131.59242800	,100.08952310	,73.63209608	,54.60231744	,39.48028161	,26.47861379	,17.63748553	,12.19992341	,9.28609970	,7.64249628	,6.21910485	,5.24044992	,4.65509306	,4.07045634	,3.51118618	,3.25569148	,2.80925349	,2.61069663	,2.39112544	,2.17705579	,1.99959170	,1.92357213	,1.75687067	,1.64994092	,1.56213126	,1.52333637	,1.41260526	,1.38441627	,1.27925977	,1.20698624	,1.16664927	,1.15796934	,1.12386360	,1.07388241	,1.00892838	,1.00460651	,0.98270005	,1.00503534	,0.93658968	,0.93019993	,0.94318783	,0.93619016	,0.89221666	,0.91207888	,0.91133428	,0.89153404	,0.91460231	,0.90674946	,0.89750422	,0.90380133	,0.89190251	,0.87688821	,0.87117490	,0.88346685	,0.87092222	,0.87619063	,0.89471357	,0.85915394	,0.89143436	,0.88726983	,0.89438375	,0.90156309	,0.89889511	,0.90664908	,0.91678198	,0.91735551	,0.92122476	,0.91037453	,0.91495478	,0.92157440	,0.91190644	,0.88883750	,0.89049827	,0.89026236	,0.85621603	,0.84290360	,0.82111156	,0.81243927	,0.79481040	,0.78264333	,0.75665926	,0.74517757	,0.70948241	,0.70109569	,0.67637266	,0.66340054	,0.63552800	,0.61294571	,0.59219409	,0.55411851	,0.53539725	,0.51340540	,0.47555007	,0.47816945	,0.45024840	,0.42395841	,0.39611960	,0.38262378	,0.35831866	,0.35320362	,0.34146820	,0.31617893	,0.30419352	,0.28289478	,0.29198448	,0.25936696	,0.25987293	,0.24309008	,0.23736998	,0.22430119	,0.22206898	,0.21028855	,0.20396381	,0.19452954	,0.18692220	,0.18346423	,0.17720325	,0.16601350	,0.17040633	,0.15991563	,0.15169332	,0.14868690	,0.14962555	,0.13757585	,0.13089846	,0.13002453	,0.12403647	,0.12442329	,0.11985344	,0.11272974	,0.10665933	,0.10935548	,0.10548309	,0.10238063	,0.09527973	,0.09327825	,0.09051113	,0.08820124	,0.08702189	,0.08249344	,0.08421637	,0.07895646	,0.07525440	,0.06863699	,0.07162078	,0.06418893	,0.06745232	,0.06564193	,0.06297574	,0.06379705	,0.06113915	,0.05391862	,0.05683304	,0.05303102	,0.05072655	,0.05001585	,0.05327111	,0.04463483	,0.04730818	,0.04339604	,0.04422675	,0.04255934	,0.04203425	,0.04107220	,0.03729259	,0.03287503	,0.03320166	,0.03638846	,0.03233257	,0.03283617	,0.02868774	,0.02943291	,0.02913883	,0.02856542	,0.02825330	,0.02511534	,0.02472052	,0.02411842	,0.02670751	,0.02173993	,0.02349169	,0.02007420	,0.02392712	,0.02255197	,0.01960980	,0.01891021	,0.02015019
 ]
-
+# data saved in the script so need to worry about any missing files or loading errors!
 # Functions
 
 def surv_prob_corr(theta,m,sig_rate=1/E,E=E,L=L):#survival probability. It also include the cross-section rate to reduce the number of functions needed. 
@@ -437,7 +437,7 @@ stdev_theta=STerr(theta_test,NLL_y)#determining the error of minimum
 stdev_theta_analytic=err_analytic(theta_min,D_m_test[120],variable="theta")
 print('-------------')
 print('-------------')
-print("TESTING FUNCTIONS NLL(theta,m_fixed)")
+print("NLL(theta,m_fixed)")
 print("Minimising Mixing Angle for Change in mass squared=",D_m_test[120],"without considering the Cross-Section:",theta_min)
 print("->Standard Dev error for Mixing Angle:",stdev_theta[0])#shifting err
 print("->Parabolic approx error for Mixing Angle:",theta_min-para_err_0[0])#parabolic approx err
@@ -463,7 +463,7 @@ stdev_theta_min_g=STerr(theta_test,NLL(theta_test,delta_m_min_g[-1],variable="th
 stdev_m_min_g=STerr(D_m_test,NLL(theta_min_g[-1],D_m_test,variable="m"))
 print('-------------')
 print('-------------')
-print("TESTING FUNCTIONS NLL(theta,m)")
+print("NLL(theta,m)")
 print('Considering only the Mixing Angle and Change in Mass Squared:' )
 print('--Univariate Method:--')
 print( '->Mixing Angle=',theta_min_1[-1],'+/-',stdev_theta_min[0])
@@ -515,7 +515,7 @@ stdev_sigma_min_j=STerr(sig_rate_test,NLL(theta_min_j[-1],delta_m_min_j[-1],sig_
 
 print('-------------')
 print('-------------')
-print("TESTING FUNCTIONS NLL(theta,m_fixed,sigma)")
+print("NLL(theta,m_fixed,sigma)")
 print('Considering the Mixing Angle, Change in Mass Squared and the Rate of Increase of the Cross-Section: ')
 print('--Univariate Method:--')
 print('->Mixing Angle=',theta_min_4[-1],'+/-',stdev_theta_min_4[0])
